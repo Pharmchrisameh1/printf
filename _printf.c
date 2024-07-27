@@ -9,7 +9,7 @@
  */
 int _printf(const char *format, ...)
 {
-	int i, plen, klen;
+	int i, blen, hlen;
 	double totalBuffer;
 	double *total;
 	va_list argp;
@@ -24,7 +24,7 @@ int _printf(const char *format, ...)
 	pointer_get_valid = NULL;
 	total = &totalBuffer;
 	va_start(argp, format);
-	for (i = plen = klen = 0; format && format[i]; i++)
+	for (i = blen = hlen = 0; format && format[i]; i++)
 	{
 		if (format[i] == '%')
 		{
@@ -32,17 +32,17 @@ int _printf(const char *format, ...)
 			holder = (pointer_get_valid == NULL) ?
 				found_nothing(format[i + 1]) :
 				pointer_get_valid(argp);
-			klen = _strlen(holder);
-			plen = alloc_buffer(holder, klen, buffer, plen, total);
+			hlen = _strlen(holder);
+			blen = alloc_buffer(holder, hlen, buffer, blen, total);
 			i++;
 		}
 		else
 		{
 			holder = ctos(format[i]);
-			plen = alloc_buffer(holder, 1, buffer, plen, total);
+			blen = alloc_buffer(holder, 1, buffer, blen, total);
 		}
 	}
 	va_end(argp);
-	_puts(buffer, plen);
-	return (totalBuffer + plen);
+	_puts(buffer, blen);
+	return (totalBuffer + blen);
 }
