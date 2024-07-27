@@ -1,48 +1,90 @@
 #include "main.h"
-#include <stddef.h>
-#include <stdlib.h>
-#include <stdio.h>
+
+void cleanup(va_list args, buffer_t *output);
+int run_printf(const char *format, va_list args, buffer_t *output);
+int _printf(const char *format, ...);
+
 /**
- * _printf - Build out the printf function
- * @format: string passed with possible format specifiers
- * Return: number of characters printed
+ * cleanup - Peforms cleanup operations for _printf.
+ * @args: A va_list of arguments provided to _printf.
+ * @output: A buffer_t struct.
+ */
+void cleanup(va_list args, buffer_t *output)
+{
+	va_end(args);
+	write(1, output->start, output->len);
+	free_buffer(output);
+}
+
+/**
+ * run_printf - Reads through the format string for _printf.
+ * @format: Character string to print - may contain directives.
+ * @output: A buffer_t struct containing a buffer.
+ * @args: A va_list of arguments.
+ *
+ * Return: The number of characters stored to output.
+ */
+int run_printf(const char *format, va_list args, buffer_t *output)
+{
+	int i, wid, prec, ret = 0;
+	char tmp;
+	unsigned char flags, len;
+	unsigned int (*f)(va_list, buffer_t *,
+			unsigned char, int, int, unsigned char);
+
+	for (i = 0; *(format + i); i++)
+	{
+		len = 0;
+		if (*(format + i) == '%')
+		{
+			tmp = 0;
+			flags = handle_flags(format + i + 1, &tmp);
+			wid = handle_width(args, format + i + tmp + 1, &tmp);
+			prec = handle_precision(args, format + i + tmp + 1,
+					&tmp);
+			len = handle_length(format + i + tmp + 1, &tmp);
+
+			f = handle_specifiers(format + i + tmp + 1);
+			if (f != NULL)
+			{
+				i += tmp + 1;
+				ret += f(args, output, flags, wid, prec, len);
+				continue;
+			}
+			else if (*(format + i + tmp + 1) == '\0')
+			{
+				ret = -1;
+				break;
+			}
+		}
+		ret += _memcpy(output, (format + i), 1);
+		i += (len != 0) ? 1 : 0;
+	}
+	cleanup(args, output);
+	return (ret);
+}
+
+/**
+ * _printf - Outputs a formatted string.
+ * @format: Character string to print - may contain directives.
+ *
+ * Return: The number of characters printed.
  */
 int _printf(const char *format, ...)
 {
-	int i, blen, hlen;
-	double totalBuffer;
-	double *total;
-	va_list argp;
-	char buffer[BUFSIZE], *holder;
-	char *(*pointer_get_valid)(va_list);
+	buffer_t *output;
+	va_list args;
+	int ret;
 
-	for (i = 0; i < BUFSIZE; i++)
-	{
-		buffer[i] = 0;
-	}
-	totalBuffer = 0;
-	pointer_get_valid = NULL;
-	total = &totalBuffer;
-	va_start(argp, format);
-	for (i = blen = hlen = 0; format && format[i]; i++)
-	{
-		if (format[i] == '%')
-		{
-			pointer_get_valid = get_valid_type(format[i + 1]);
-			holder = (pointer_get_valid == NULL) ?
-				found_nothing(format[i + 1]) :
-				pointer_get_valid(argp);
-			hlen = _strlen(holder);
-			blen = alloc_buffer(holder, hlen, buffer, blen, total);
-			i++;
-		}
-		else
-		{
-			holder = ctos(format[i]);
-			blen = alloc_buffer(holder, 1, buffer, blen, total);
-		}
-	}
-	va_end(argp);
-	_puts(buffer, blen);
-	return (totalBuffer + blen);
+	if (format == NULL)
+		return (-1);
+	output = init_buffer();
+	if (output == NULL)
+		return (-1);
+
+	va_start(args, format);
+
+	ret = run_printf(format, args, output);
+
+	return (ret);
 }
