@@ -1,4 +1,4 @@
-A readme file for the printf project
+A readme file for the printf project carried out by victor and chris
 
 Requirements for this project
 Code must comply with the Betty style and document checks.
